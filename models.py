@@ -502,7 +502,10 @@ class SynthesizerTrn(nn.Module):
 
         c_lengths = (torch.ones(c.size(0)) * c.size(-1)).to(c.device)
 
-        if self.character_mix and len(g) > 1:   # [N, S]  *  [S, B, 1, H]
+        if g is None or g.numel() == 0:
+            # 話者埋め込みなしのモデル
+            g = torch.zeros((c.size(0), self.gin_channels, 1)).to(c.device)
+        elif self.character_mix and len(g) > 1:   # [N, S]  *  [S, B, 1, H]
             g = g.reshape((g.shape[0], g.shape[1], 1, 1, 1))  # [N, S, B, 1, 1]
             g = g * self.speaker_map  # [N, S, B, 1, H]
             g = torch.sum(g, dim=1) # [N, 1, B, 1, H]

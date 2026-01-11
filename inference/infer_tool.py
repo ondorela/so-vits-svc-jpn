@@ -269,7 +269,7 @@ class Svc(object):
               ):
         torchaudio.set_audio_backend("soundfile")
         wav, sr = torchaudio.load(raw_path)
-        if not hasattr(self,"audio_resample_transform") or self.audio16k_resample_transform.orig_freq != sr:
+        if not hasattr(self,"audio_resample_transform") or self.audio_resample_transform.orig_freq != sr:
             self.audio_resample_transform = torchaudio.transforms.Resample(sr,self.target_sample)
         wav = self.audio_resample_transform(wav).numpy()[0]
         if spk_mix:
@@ -277,15 +277,22 @@ class Svc(object):
             n_frames = f0.size(1)
             sid = speaker[:, frame:frame+n_frames].transpose(0,1)
         else:
-            speaker_id = self.spk2id.get(speaker)
-            if not speaker_id and type(speaker) is int:
-                if len(self.spk2id.__dict__) >= speaker:
-                    speaker_id = speaker
-            if speaker_id is None:
-                raise RuntimeError("The name you entered is not in the speaker list!")
-            sid = torch.LongTensor([int(speaker_id)]).to(self.dev).unsqueeze(0)
-            c, f0, uv = self.get_unit_f0(wav, tran, cluster_infer_ratio, speaker, f0_filter,f0_predictor,cr_threshold=cr_threshold)
-            n_frames = f0.size(1)
+            if len(self.spk2id) == 0:
+                # 話者埋め込みなしのモデル
+                sid = None
+                c, f0, uv = self.get_unit_f0(wav, tran, cluster_infer_ratio, None, f0_filter,f0_predictor,cr_threshold=cr_threshold)
+                n_frames = f0.size(1)
+            else:
+                speaker_id = self.spk2id.get(speaker)
+                if not speaker_id and type(speaker) is int:
+                    if len(self.spk2id.__dict__) >= speaker:
+                        speaker_id = speaker
+                if speaker_id is None:
+                    raise RuntimeError("The name you entered is not in the speaker list!")
+                print(f"DEBUG: speaker={speaker}, speaker_id={speaker_id}, spk2id={self.spk2id}")
+                sid = torch.LongTensor([int(speaker_id)]).to(self.dev).unsqueeze(0)
+                c, f0, uv = self.get_unit_f0(wav, tran, cluster_infer_ratio, speaker, f0_filter,f0_predictor,cr_threshold=cr_threshold)
+                n_frames = f0.size(1)
         c = c.to(self.dtype)
         f0 = f0.to(self.dtype)
         uv = uv.to(self.dtype)

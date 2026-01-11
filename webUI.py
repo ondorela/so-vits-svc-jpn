@@ -22,6 +22,10 @@ from edgetts.tts_voices import SUPPORTED_LANGUAGES
 from inference.infer_tool import Svc
 from utils import mix_model
 
+import os
+os.environ["LANG"] = "en_US.UTF-8"
+os.environ["LC_ALL"] = "en_US.UTF-8"
+
 logging.getLogger('numba').setLevel(logging.WARNING)
 logging.getLogger('markdown_it').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
